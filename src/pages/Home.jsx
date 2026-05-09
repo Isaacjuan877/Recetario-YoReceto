@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
 import Categories from '../components/Categories'
+
 import SearchBar from '../components/SearchBar'
 import RecipeResults from '../components/RecipeResults'
 import DailySuggestions from '../components/DailySuggestions'
@@ -12,6 +13,7 @@ import {
   searchMeals,
   smartIngredientSearch
 } from '../api/mealdb'
+import RecipesPage from './RecipesPage'
 
 function Home() {
 
@@ -50,7 +52,10 @@ const [otherOptions, setOtherOptions] = useState([])
 
       <Categories />
 
+      
+
       <SearchBar onSearch={handleSearch} />
+      
 
       <RecipeResults recipes={recipes} />
       {otherOptions.length > 0 && (
