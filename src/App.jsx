@@ -7,6 +7,7 @@ import Navbar from './components/Navbar'
 
 import Home from './pages/Home'
 import RecipesPage from './pages/RecipesPage'
+import LoginModal from './components/LoginModal'
 import RecipeDetails from './pages/RecipeDetails'
 
 function App() {
@@ -28,11 +29,13 @@ function App() {
           path="/recipes"
           element={<RecipesPage />}
         />
+        
 
         <Route
           path="/recipe/:id"
           element={<RecipeDetails />}
         />
+        
 
       </Routes>
 

@@ -43,7 +43,7 @@ function Navbar() {
           </ul>
 
           <div className="flex items-center gap-5">
-
+            
             <button
               onClick={() => setShowLogin(true)}
               className="bg-red-400 hover:bg-red-500 text-white px-5 py-2 rounded-full transition-all"
@@ -59,15 +59,14 @@ function Navbar() {
 
       </nav>
 
-      {
-        showLogin && (
+     
 
           <LoginModal
-            onClose={() => setShowLogin(false)}
-          />
+          isOpen={showLogin}
+          setIsOpen={setShowLogin}
+        />
 
-        )
-      }
+       
 
     </>
   )
