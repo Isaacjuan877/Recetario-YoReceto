@@ -4,7 +4,7 @@ import { getRandomMeals } from '../api/mealdb'
 
 import RecipeResults from '../components/RecipeResults'
 
-import { translateMeal } from '../services/translateMeal'
+import { getRecipes } from '../api/spoonacular'
 
 function RecipesPage() {
 
@@ -20,19 +20,35 @@ function RecipesPage() {
 
       setLoading(true)
 
-      const data =
-        await getRandomMeals(12)
+      // 15 THEMEALDB
+      const mealdbRecipes =
+        await getRandomMeals(15)
 
-      const translatedMeals =
-        await Promise.all(
+      // 15 SPOONACULAR
+      const spoonacularRecipes =
+        await getRecipes('', 15)
 
-          data.map(meal =>
-            translateMeal(meal)
-          )
+      // FORMATEAR MEALDB
+      const formattedMealdb =
+        mealdbRecipes.map(meal => ({
+          ...meal,
+          source: 'mealdb'
+        }))
 
-        )
+      // FORMATEAR SPOONACULAR
+      const formattedSpoonacular =
+        spoonacularRecipes.map(recipe => ({
+          ...recipe,
+          source: 'spoonacular'
+        }))
 
-      setRecipes(translatedMeals)
+      // COMBINAR
+      const allRecipes = [
+        ...formattedMealdb,
+        ...formattedSpoonacular
+      ]
+
+      setRecipes(allRecipes)
 
       setLoading(false)
     }

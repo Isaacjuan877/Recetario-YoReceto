@@ -3,16 +3,18 @@ import { useState } from 'react'
 function SearchBar({ onSearch }) {
 
   const [query, setQuery] = useState('')
-
+  const [country, setCountry] =
+  useState('all')
   const handleSubmit = (e) => {
 
     e.preventDefault()
 
-    onSearch(query)
+    onSearch(query, country)
   }
 
   return (
-    <section className="bg-white py-14">
+    
+    <section id="search-section" className="bg-white py-14 scroll-mt-32">
 
       <form
         onSubmit={handleSubmit}
@@ -28,6 +30,31 @@ function SearchBar({ onSearch }) {
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1 px-6 py-5 rounded-full border border-gray-200 outline-none text-lg shadow-sm"
           />
+          <select
+            value={country}
+            onChange={(e) =>
+              setCountry(e.target.value)
+            }
+            className="px-6 py-5 rounded-full border"
+          >
+
+            <option value="all">
+              Todos
+            </option>
+
+            <option value="Colombian">
+              Colombianas
+            </option>
+
+            <option value="Italian">
+              Italianas
+            </option>
+
+            <option value="Mexican">
+              Mexicanas
+            </option>
+
+          </select>
 
           <button
             type="submit"

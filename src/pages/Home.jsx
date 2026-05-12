@@ -14,34 +14,85 @@ import {
   smartIngredientSearch
 } from '../api/mealdb'
 import RecipesPage from './RecipesPage'
-
+import { translateText } from '../services/translate'
+import {
+  getRecipes
+}from '../api/spoonacular'
 function Home() {
 
   const [recipes, setRecipes] = useState([])
-const [otherOptions, setOtherOptions] = useState([])
+  const [otherOptions, setOtherOptions] = useState([])
+  const handleSearch = async (
+    query,
+    country
+  ) => {
 
-  const handleSearch = async (query) => {
+    // MEALDB
+    const meals =
+      await searchMeals(query)
 
-  const isIngredientSearch =
-  query.includes(',')
+    // SPOONACULAR
+    const spoonacularRecipes =
+      await getRecipes(query)
 
-  if (isIngredientSearch) {
+    // FORMATEAR
+    const formattedMeals =
+      meals.map(meal => ({
+        ...meal,
+        source: 'mealdb'
+      }))
 
-    const data = await smartIngredientSearch(query)
+    const formattedSpoonacular =
+      spoonacularRecipes.map(recipe => ({
+        ...recipe,
+        source: 'spoonacular'
+      }))
 
-    setRecipes(data.exactMatches)
+    // UNIR
+    let allRecipes = [
 
-    setOtherOptions(data.partialMatches)
+      ...formattedMeals,
 
-  } else {
+      ...formattedSpoonacular
+    ]
 
-    const meals = await searchMeals(query)
+    // FILTRAR POR PAÍS
+    if (country !== 'all') {
 
-    setRecipes(meals)
+      allRecipes =
+        allRecipes.filter(recipe => {
 
-    setOtherOptions([])
+          // MEALDB
+          if (recipe.strArea) {
+
+            return (
+              recipe.strArea
+                .toLowerCase()
+                .includes(
+                  country.toLowerCase()
+                )
+            )
+          }
+
+          // SPOONACULAR
+          if (recipe.cuisines) {
+
+            return recipe.cuisines.some(
+              cuisine =>
+                cuisine
+                  .toLowerCase()
+                  .includes(
+                    country.toLowerCase()
+                  )
+            )
+          }
+
+          return false
+        })
+    }
+
+    setRecipes(allRecipes)
   }
-}
 
   return (
     <div className="overflow-x-hidden">

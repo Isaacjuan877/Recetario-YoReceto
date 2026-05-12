@@ -1,17 +1,25 @@
 import { useEffect, useState } from 'react'
 import { getRandomMeals } from '../api/mealdb'
-
+import { Link } from 'react-router-dom'
 function DailySuggestions() {
 
   const [recipes, setRecipes] = useState([])
-
+  
   useEffect(() => {
 
     async function fetchMeals() {
 
       const meals = await getRandomMeals(3)
 
-      setRecipes(meals)
+      const formattedMeals =
+        meals.map(meal => ({
+          ...meal,
+          source: 'mealdb'
+        }))
+
+      setRecipes(formattedMeals)
+
+      
     }
 
     fetchMeals()
@@ -45,20 +53,23 @@ function DailySuggestions() {
             >
 
               <img
-                src={meal.strMealThumb}
-                alt={meal.strMeal}
+                src={meal.strMealThumb || meal.image}
+                alt={meal.strMeal || meal.title}
                 className="w-full h-72 object-cover"
               />
 
               <div className="p-6">
 
                 <h3 className="text-2xl mb-6">
-                  {meal.strMeal}
+                  {meal.strMeal || meal.title}
                 </h3>
 
-                <button className="bg-green-700 hover:bg-green-800 text-white px-6 py-3 rounded-full">
+                <Link
+                  to={`/recipe/${meal.source}/${meal.idMeal || meal.id}`}
+                  className="bg-green-700 hover:bg-green-800 text-white px-6 py-3 rounded-full inline-block"
+                >
                   Ver receta
-                </button>
+                </Link>
 
               </div>
 

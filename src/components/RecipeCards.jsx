@@ -1,17 +1,3 @@
-const recipes = [
-  {
-    title: 'Pasta con ajo y parmesano',
-    time: '25 min',
-    difficulty: 'Media',
-    image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?q=80&w=1200&auto=format&fit=crop'
-  },
-  {
-    title: 'Pollo con miel y ajo',
-    time: '30 min',
-    difficulty: 'Fácil',
-    image: 'https://images.unsplash.com/photo-1604908176997-4313c4c6349b?q=80&w=1200&auto=format&fit=crop'
-  },
-]
 
 function RecipeCards() {
   return (
