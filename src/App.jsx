@@ -16,7 +16,7 @@ import EditProfile from './pages/EditProfile'
 import ResetPassword from './pages/ResetPassword'
 import SearchPage from './pages/SearchPage'
 import Favorites from './pages/Favorites'
-
+import ScrollToTop from './components/ScrollToTop'
 function App() {
 
   useEffect(() => {
@@ -42,7 +42,7 @@ function App() {
 
     <>
       <Navbar />
-
+      <ScrollToTop />
       <main className="pt-24">
 
         <Routes>

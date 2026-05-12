@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react'
-
-import { getRandomMeals } from '../api/mealdb'
+import { useSearchParams } from 'react-router-dom'
 
 import RecipeResults from '../components/RecipeResults'
 
+import {
+  getMealsByCategory,
+  getRandomMeals
+} from '../api/mealdb'
+
 import { getRecipes } from '../api/spoonacular'
+
+import { translateText } from '../services/translate'
 
 function RecipesPage() {
 
@@ -14,35 +20,84 @@ function RecipesPage() {
   const [loading, setLoading] =
     useState(true)
 
+  const [searchParams] =
+    useSearchParams()
+
+  const category =
+    searchParams.get('category')
+const [translatedCategory, setTranslatedCategory] = useState('')
   useEffect(() => {
 
     async function fetchRecipes() {
 
       setLoading(true)
 
-      // 15 THEMEALDB
+      // =========================
+      // RECETAS POR CATEGORÍA
+      // =========================
+      if (category) {
+
+        const translatedCategoryName =
+          await translateText(category)
+
+        setTranslatedCategory(
+          translatedCategoryName
+        )
+
+        const meals =
+          await getMealsByCategory(category)
+
+        const translatedMeals =
+          await Promise.all(
+
+            meals.map(async meal => ({
+
+              ...meal,
+
+              source: 'mealdb',
+
+              strMeal:
+                await translateText(
+                  meal.strMeal
+                ),
+
+              strCategory:
+                translatedCategoryName,
+
+              strArea:
+                'Internacional'
+            }))
+          )
+
+        setRecipes(translatedMeals)
+
+        setLoading(false)
+
+        return
+      }
+
+      // =========================
+      // FLUJO NORMAL
+      // =========================
+
       const mealdbRecipes =
         await getRandomMeals(15)
 
-      // 15 SPOONACULAR
       const spoonacularRecipes =
         await getRecipes('', 15)
 
-      // FORMATEAR MEALDB
       const formattedMealdb =
         mealdbRecipes.map(meal => ({
           ...meal,
           source: 'mealdb'
         }))
 
-      // FORMATEAR SPOONACULAR
       const formattedSpoonacular =
         spoonacularRecipes.map(recipe => ({
           ...recipe,
           source: 'spoonacular'
         }))
 
-      // COMBINAR
       const allRecipes = [
         ...formattedMealdb,
         ...formattedSpoonacular
@@ -55,7 +110,7 @@ function RecipesPage() {
 
     fetchRecipes()
 
-  }, [])
+  }, [category])
 
   if (loading) {
 
@@ -77,7 +132,11 @@ function RecipesPage() {
 
     <RecipeResults
       recipes={recipes}
-      title="Todas las recetas"
+      title={
+        category
+          ? `Categoría: ${translatedCategory}`
+          : 'Todas las recetas'
+      }
     />
 
   )

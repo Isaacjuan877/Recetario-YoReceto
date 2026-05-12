@@ -1,6 +1,18 @@
 const BASE_URL = 'https://www.themealdb.com/api/json/v1/1'
 
+/* =========================================
+   BUSCAR RECETAS POR CATEGORIA
+========================================= */
+export async function getMealsByCategory(category) {
 
+  const response = await fetch(
+    `${BASE_URL}/filter.php?c=${category}`
+  )
+
+  const data = await response.json()
+
+  return data.meals || []
+}
 
 /* =========================================
    BUSCAR RECETAS POR NOMBRE
