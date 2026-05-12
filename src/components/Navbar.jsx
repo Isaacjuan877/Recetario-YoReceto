@@ -1,6 +1,6 @@
 import { FaSearch,FaBars } from 'react-icons/fa'
 import { Link ,useNavigate, useLocation} from 'react-router-dom'
-import { useState,useEffect  } from 'react'
+import { useState,useEffect, useRef  } from 'react'
 
 import LoginModal from './LoginModal'
 import { supabase } from '../assets/services/supabase'
@@ -11,12 +11,15 @@ function Navbar() {
   const [showLogin, setShowLogin] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+  const userMenuRef = useRef(null)
   const navigate = useNavigate()
   
   const [search, setSearch] = useState('')
 
 
   useEffect(() => {
+
     async function getSession() {
 
       const {
@@ -37,9 +40,38 @@ function Navbar() {
       }
     )
 
+    function handleClickOutside(e) {
+
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(e.target)
+      ) {
+
+        setShowUserMenu(false)
+      }
+
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target)
+      ) {
+
+        setMenuOpen(false)
+      }
+    }
+
+    document.addEventListener(
+      'mousedown',
+      handleClickOutside
+    )
+
     return () => {
 
       listener.subscription.unsubscribe()
+
+      document.removeEventListener(
+        'mousedown',
+        handleClickOutside
+      )
     }
 
   }, [])
@@ -129,7 +161,7 @@ function Navbar() {
             {
               user ? (
 
-                <div className="relative">
+                <div className="relative" ref={userMenuRef} >
 
                   <img
                     src={
@@ -137,9 +169,11 @@ function Navbar() {
                       'https://i.pravatar.cc/40'
                     }
                     alt="user"
-                    onClick={() =>
+                    onClick={() => {
+
                       setShowUserMenu(!showUserMenu)
-                    }
+                      setMenuOpen(false)
+                    }}
                     className="w-11 h-11 rounded-full object-cover cursor-pointer border-2 border-red-300"
                   />
 
@@ -155,7 +189,7 @@ function Navbar() {
                           }
                         </p>
 
-                        <p className="text-sm text-gray-400 mb-3">
+                        <p className="text-sm text-gray-400 mb-3 truncate w-full">
                           {
                             user.email
                           }
@@ -201,7 +235,11 @@ function Navbar() {
             
             {/* MOBILE BUTTON */}
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => {
+
+              setMenuOpen(!menuOpen)
+              setShowUserMenu(false)
+            }}
             className="md:hidden text-2xl"
           >
             <FaBars />
@@ -213,7 +251,7 @@ function Navbar() {
         {/* MOBILE MENU */}
         {
           menuOpen && (
-            <div className="md:hidden bg-white px-6 pb-4">
+            <div ref={menuRef} className="md:hidden bg-white px-6 pb-4" >
 
               <Link
                 to="/"

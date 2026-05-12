@@ -16,6 +16,7 @@ import EditProfile from './pages/EditProfile'
 import ResetPassword from './pages/ResetPassword'
 import SearchPage from './pages/SearchPage'
 import Favorites from './pages/Favorites'
+
 function App() {
 
   useEffect(() => {
@@ -40,44 +41,52 @@ function App() {
   return (
 
     <>
-
       <Navbar />
 
-      <Routes>
+      <main className="pt-24">
 
-        <Route
-          path="/"
-          element={<Home />}
-        />
-        <Route
-          path="/search"
-          element={<SearchPage />}
-        />
+        <Routes>
 
-        <Route
-          path="/recipes"
-          element={<RecipesPage />}
-        />
+          <Route
+            path="/"
+            element={<Home />}
+          />
 
-        <Route
-          path="/recipe/:source/:id"
-          element={<RecipeDetails />}
-        />
-        <Route
-          path="/profile"
-          element={<EditProfile />}
-        />
-        <Route
-          path="/reset-password"
-          element={<ResetPassword />}
-        />
-        <Route
-          path="/favorites"
-          element={<Favorites />}
-        />
+          <Route
+            path="/search"
+            element={<SearchPage />}
+          />
 
-      </Routes>
+          <Route
+            path="/recipes"
+            element={<RecipesPage />}
+          />
 
+          <Route
+            path="/recipe/:source/:id"
+            element={<RecipeDetails />}
+          />
+
+          <Route
+            path="/profile"
+            element={<EditProfile />}
+          />
+
+          <Route
+            path="/reset-password"
+            element={<ResetPassword />}
+          />
+
+          <Route
+            path="/favorites"
+            element={<Favorites />}
+          />
+
+          
+
+        </Routes>
+
+      </main>
     </>
 
   )

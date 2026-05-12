@@ -1,7 +1,8 @@
-import { FaBars } from 'react-icons/fa'
+
 import { IoClose } from 'react-icons/io5'
 import { useState, useEffect } from 'react'
 import { supabase } from '../assets/services/supabase'
+import { FaEye, FaEyeSlash } from 'react-icons/fa'
 function LoginModal({ isOpen, setIsOpen }) {
 
   const [isRegister, setIsRegister] = useState(false)
@@ -12,14 +13,31 @@ function LoginModal({ isOpen, setIsOpen }) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [phone, setPhone] = useState('')
   const [gender, setGender] = useState('')
-
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
   const handleRegister = async (e) => {
 
     e.preventDefault()
 
+    setError('')
+    setPasswordError('')
+
+    if (password.length < 6) {
+
+      setPasswordError(
+        'La contraseña debe tener mínimo 6 caracteres'
+      )
+
+      return
+    }
+
     if (password !== confirmPassword) {
 
-      alert('Las contraseñas no coinciden')
+      setPasswordError(
+        'Las contraseñas no coinciden'
+      )
 
       return
     }
@@ -37,7 +55,7 @@ function LoginModal({ isOpen, setIsOpen }) {
             name,
             last_name: lastName,
             gender,
-            phone
+            phone,
 
           }
         }
@@ -45,25 +63,36 @@ function LoginModal({ isOpen, setIsOpen }) {
 
     if (error) {
 
-      alert(error.message)
+      setError(error.message)
 
       return
     }
 
-    alert('Cuenta creada')
+    await supabase.auth.signOut()
 
+    alert(
+      'Cuenta creada correctamente. Ahora inicia sesión.'
+    )
+
+    setIsRegister(false)
+
+    // LIMPIAR CAMPOS
     setName('')
     setLastName('')
     setGender('')
     setPhone('')
-    setEmail('')
+    
     setPassword('')
     setConfirmPassword('')
+    setError('')
+    setPasswordError('')
   }
 
   const handleLogin = async (e) => {
 
     e.preventDefault()
+
+    setError('')
 
     const { error } =
       await supabase.auth.signInWithPassword({
@@ -72,16 +101,18 @@ function LoginModal({ isOpen, setIsOpen }) {
       })
 
     if (error) {
-      alert(error.message)
+
+      setError(
+        'Correo o contraseña incorrectos'
+      )
+
       return
     }
 
-    alert('Login exitoso')
     setName('')
     setEmail('')
     setPassword('')
     setIsOpen(false)
-    
   }
   const handleForgotPassword = async () => {
 
@@ -100,6 +131,7 @@ function LoginModal({ isOpen, setIsOpen }) {
             `${window.location.origin}/reset-password`
         }
       )
+      console.log(error)
 
     if (error) {
 
@@ -201,25 +233,67 @@ function LoginModal({ isOpen, setIsOpen }) {
               className="w-full px-4 py-3 rounded-lg outline-none bg-white text-black"
             />
 
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg outline-none bg-white text-black"
-            />
+           <div className="relative">
+
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`
+                  w-full px-4 py-3 rounded-lg outline-none
+                  bg-white text-black pr-12
+                  ${passwordError ? 'border-2 border-red-500' : ''}
+                `}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+              >
+                {
+                  showPassword
+                    ? <FaEyeSlash />
+                    : <FaEye />
+                }
+              </button>
+
+            </div>
             {
               isRegister && (
 
-                <input
-                  type="password"
-                  placeholder="Confirmar contraseña"
-                  value={confirmPassword}
-                  onChange={(e) =>
-                    setConfirmPassword(e.target.value)
-                  }
-                  className="w-full px-4 py-3 rounded-lg outline-none bg-white text-black"
-                />
+                <div className="relative">
+
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirmar contraseña"
+                    value={confirmPassword}
+                    onChange={(e) =>
+                      setConfirmPassword(e.target.value)
+                    }
+                    className={`
+                      w-full px-4 py-3 rounded-lg outline-none
+                      bg-white text-black pr-12
+                      ${passwordError ? 'border-2 border-red-500' : ''}
+                    `}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                  >
+                    {
+                      showConfirmPassword
+                        ? <FaEyeSlash />
+                        : <FaEye />
+                    }
+                  </button>
+
+                </div>
 
               )
             }
@@ -283,6 +357,26 @@ function LoginModal({ isOpen, setIsOpen }) {
                     : 'Olvide mi contraseña'
                 }
               </button>
+            </div>
+            <div className="text-center">
+            {
+              passwordError && (
+
+                <p className="text-sm text-red-200">
+                  {passwordError}
+                </p>
+
+              )
+            }
+            {
+              error && (
+
+                <p className="text-sm text-red-200 text-center">
+                  {error}
+                </p>
+
+              )
+            }
             </div>
 
             <button

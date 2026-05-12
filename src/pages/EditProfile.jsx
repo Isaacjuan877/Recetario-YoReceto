@@ -13,7 +13,8 @@ function EditProfile() {
     const [email, setEmail] = useState('')
  
     const [loading, setLoading] = useState(false)
-
+    const [avatar, setAvatar] = useState('') 
+    
   useEffect(() => {
 
     async function getUser() {
@@ -25,6 +26,7 @@ function EditProfile() {
       if (!user) return
 
       setUser(user)
+      console.log(user)
 
       setName(
         user.user_metadata?.name || ''
@@ -43,6 +45,12 @@ function EditProfile() {
         )
 
         setEmail(user.email || '')
+
+        setAvatar(
+          `https://i.pravatar.cc/150?img=${
+            Math.floor(Math.random() * 70) + 1
+          }`
+        )
     }
 
     getUser()
@@ -78,8 +86,8 @@ function EditProfile() {
     }
 
     alert('Perfil actualizado')
-    }
-
+  }
+  
   return (
 
     <section className="min-h-screen bg-[#f7f3ed] py-28 px-6">
@@ -89,13 +97,14 @@ function EditProfile() {
         <h1 className="text-5xl font-light mb-10">
           Editar perfil
         </h1>
+        
 
         <form
           onSubmit={handleUpdate}
           className="space-y-6"
         >
 
-          {/* <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-4">
 
             <img
               src={
@@ -106,7 +115,7 @@ function EditProfile() {
               className="w-32 h-32 rounded-full object-cover border-4 border-red-300"
             />
 
-          </div> */}
+          </div> 
 
         <input
             type="text"
