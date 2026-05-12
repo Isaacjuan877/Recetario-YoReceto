@@ -493,7 +493,7 @@ function RecipeDetails() {
           </h2>
 
           <div
-            className="bg-white p-8 rounded-[30px] shadow-lg leading-relaxed text-gray-700"
+            className="bg-white p-8 rounded-[30px] shadow-lg leading-relaxed text-gray-700 text-justify"
             dangerouslySetInnerHTML={{
               __html:
                 isTranslating
