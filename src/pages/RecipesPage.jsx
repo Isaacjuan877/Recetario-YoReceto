@@ -81,7 +81,7 @@ const [translatedCategory, setTranslatedCategory] = useState('')
       // =========================
 
       const mealdbRecipes =
-        await getRandomMeals(15)
+        await getRandomMeals(25)
 
       const spoonacularRecipes =
         await getRecipes('', 15)
@@ -99,11 +99,75 @@ const [translatedCategory, setTranslatedCategory] = useState('')
         }))
 
       const allRecipes = [
-        ...formattedMealdb,
-        ...formattedSpoonacular
+        ...formattedSpoonacular,
+        ...formattedMealdb
+        
       ]
 
-      setRecipes(allRecipes)
+      const translatedRecipes =
+        await Promise.all(
+
+          allRecipes.map(async recipe => {
+
+            try {
+
+              return {
+
+                ...recipe,
+
+                strMeal:
+                  recipe.strMeal
+                    ? await translateText(
+                        recipe.strMeal
+                      )
+                    : recipe.strMeal,
+
+                title:
+                  recipe.title
+                    ? await translateText(
+                        recipe.title
+                      )
+                    : recipe.title,
+
+                strCategory:
+                  recipe.strCategory
+                    ? await translateText(
+                        recipe.strCategory
+                      )
+                    : recipe.strCategory,
+
+                category:
+                  recipe.category
+                    ? await translateText(
+                        recipe.category
+                      )
+                    : recipe.category,
+
+                strArea:
+                  recipe.strArea
+                    ? await translateText(
+                        recipe.strArea
+                      )
+                    : recipe.strArea,
+
+                area:
+                  recipe.area
+                    ? await translateText(
+                        recipe.area
+                      )
+                    : recipe.area
+              }
+
+            } catch (error) {
+
+              console.error(error)
+
+              return recipe
+            }
+          })
+        )
+
+      setRecipes(translatedRecipes)
 
       setLoading(false)
     }

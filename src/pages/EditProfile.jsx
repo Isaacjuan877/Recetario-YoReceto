@@ -87,6 +87,46 @@ function EditProfile() {
 
     alert('Perfil actualizado')
   }
+  async function handleDeleteAccount() {
+
+    const confirmDelete =
+      window.confirm(
+        '¿Seguro que deseas eliminar tu cuenta?'
+      )
+
+    if (!confirmDelete) return
+
+    const {
+      data: { session }
+    } = await supabase.auth.getSession()
+
+    const res = await fetch(
+
+      'https://adkverseinhlqjinmwyy.supabase.co/functions/v1/delete-user',
+
+      {
+        method: 'POST',
+
+        headers: {
+          Authorization:
+            `Bearer ${session.access_token}`
+        }
+      }
+    )
+
+    if (!res.ok) {
+
+      alert('Error eliminando cuenta')
+
+      return
+    }
+
+    await supabase.auth.signOut()
+
+    alert('Cuenta eliminada')
+
+    window.location.href = '/'
+  }
   
   return (
 
@@ -97,6 +137,21 @@ function EditProfile() {
         <h1 className="text-5xl font-light mb-10">
           Editar perfil
         </h1>
+        <button
+          type="button"
+          onClick={handleDeleteAccount} 
+          className="
+            bg-black
+            hover:bg-red-600
+            text-white
+            px-8 py-4
+            rounded-full
+            transition-all
+            ml-4
+          "
+        >
+          Eliminar cuenta
+        </button>
         
 
         <form

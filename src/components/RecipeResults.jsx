@@ -76,6 +76,7 @@ function RecipeResults({
                           meal.image
                         }
                         alt={
+                          meal.translatedTitle ||
                           meal.strMeal ||
                           meal.title
                         }
@@ -98,21 +99,36 @@ function RecipeResults({
 
                         </span>
 
-                        <span className="text-sm text-gray-400">
+                        <div className="flex flex-col items-end">
+
+                          <span className="text-sm text-gray-400">
+
+                            {
+                              meal.strArea ||
+                              meal.area ||
+                              'Internacional'
+                            }
+
+                          </span>
 
                           {
-                            meal.strArea ||
-                            meal.area ||
-                            'Internacional'
+                            meal.score && meal.score > 0 && (
+
+                              <span className="text-sm text-green-500">
+
+                                {meal.score} ingredientes coinciden
+
+                              </span>
+                            )
                           }
 
-                        </span>
+                        </div>
 
                       </div>
-
                       <h3 className="text-2xl mb-6 leading-snug">
 
                         {
+                          meal.translatedTitle ||
                           meal.strMeal ||
                           meal.title
                         }

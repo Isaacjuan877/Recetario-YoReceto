@@ -3,98 +3,227 @@ import { useState } from 'react'
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
 import Categories from '../components/Categories'
-
 import SearchBar from '../components/SearchBar'
 import RecipeResults from '../components/RecipeResults'
 import DailySuggestions from '../components/DailySuggestions'
 import Contact from '../components/Contact'
-
+import { translateText } from '../services/translate'
+import { translateMeal } from '../services/translateMeal'
 import {
   searchMeals,
-  smartIngredientSearch
+  searchByIngredients
 } from '../api/mealdb'
-import RecipesPage from './RecipesPage'
-import { translateText } from '../services/translate'
+
 import {
   getRecipes
-}from '../api/spoonacular'
+} from '../api/spoonacular'
+
 function Home() {
 
-  const [recipes, setRecipes] = useState([])
-  const [otherOptions, setOtherOptions] = useState([])
+  const [recipes, setRecipes] =
+    useState([])
+
+  const [otherOptions, setOtherOptions] =
+    useState([])
+
+  const [loading, setLoading] =
+    useState(false)
+
   const handleSearch = async (
     query,
-    country
+    searchType
   ) => {
 
-    // MEALDB
-    const meals =
-      await searchMeals(query)
+    try {
 
-    // SPOONACULAR
-    const spoonacularRecipes =
-      await getRecipes(query)
+      setLoading(true)
 
-    // FORMATEAR
-    const formattedMeals =
-      meals.map(meal => ({
-        ...meal,
-        source: 'mealdb'
-      }))
+      let allRecipes = []
 
-    const formattedSpoonacular =
-      spoonacularRecipes.map(recipe => ({
-        ...recipe,
-        source: 'spoonacular'
-      }))
+      /* =========================
+         BUSCAR POR RECETA
+      ========================= */
 
-    // UNIR
-    let allRecipes = [
+      if (searchType === 'recipe') {
 
-      ...formattedMeals,
+        // traducir búsqueda a inglés
+        const translatedQuery =
+          await translateText(
+            query,
+            'es',
+            'en'
+          )
 
-      ...formattedSpoonacular
-    ]
+        const [
+          meals,
+          spoonacularRecipes
+        ] = await Promise.all([
 
-    // FILTRAR POR PAÍS
-    if (country !== 'all') {
+          searchMeals(translatedQuery),
+
+          getRecipes(translatedQuery)
+        ])
+
+        const formattedMeals =
+          meals.map(meal => ({
+
+            ...meal,
+
+            source: 'themealdb'
+          }))
+
+        const formattedSpoonacular =
+          spoonacularRecipes.map(recipe => ({
+
+            ...recipe,
+
+            source: 'spoonacular'
+          }))
+
+        allRecipes = [
+
+          ...formattedSpoonacular,
+
+          ...formattedMeals
+        ]
+        const translatedRecipes =
+          await Promise.all(
+
+            allRecipes.map(async recipe => {
+
+              try {
+
+                const originalTitle =
+                  recipe.strMeal ||
+                  recipe.title
+
+                const translatedTitle =
+                  await translateText(
+                    originalTitle,
+                    'en',
+                    'es'
+                  )
+
+                const originalCategory =
+                  recipe.strCategory ||
+                  recipe.category ||
+                  'Receta'
+
+                const translatedCategory =
+                  await translateText(
+                    originalCategory,
+                    'en',
+                    'es'
+                  )
+
+                const originalArea =
+                  recipe.strArea ||
+                  recipe.area ||
+                  'Internacional'
+
+                const translatedArea =
+                  await translateText(
+                    originalArea,
+                    'en',
+                    'es'
+                  )
+
+                return {
+
+                  ...recipe,
+
+                  translatedTitle,
+
+                  translatedCategory,
+
+                  translatedArea
+                }
+
+              } catch (error) {
+
+                return recipe
+              }
+            })
+          )
+
+        allRecipes = translatedRecipes
+        setRecipes(allRecipes)
+      }
+      /* =========================
+         BUSCAR POR INGREDIENTES
+      ========================= */
+
+      if (searchType === 'ingredients') {
+
+        const meals =
+          await searchByIngredients(query)
+
+        const translatedMeals =
+          await Promise.all(
+
+            meals.map(async meal => {
+
+              try {
+
+                return {
+
+                  ...(await translateMeal(meal)),
+
+                  source: 'mealdb'
+                }
+
+              } catch {
+
+                return {
+
+                  ...meal,
+
+                  source: 'mealdb'
+                }
+              }
+            })
+          )
+
+        allRecipes = translatedMeals
+      }
+
+      /* =========================
+         ELIMINAR DUPLICADOS
+      ========================= */
 
       allRecipes =
-        allRecipes.filter(recipe => {
+        allRecipes.filter(
+          (recipe, index, self) =>
 
-          // MEALDB
-          if (recipe.strArea) {
+            index ===
+            self.findIndex(r => {
 
-            return (
-              recipe.strArea
-                .toLowerCase()
-                .includes(
-                  country.toLowerCase()
-                )
-            )
-          }
+              const name1 =
+                r.strMeal ||
+                r.title
 
-          // SPOONACULAR
-          if (recipe.cuisines) {
+              const name2 =
+                recipe.strMeal ||
+                recipe.title
 
-            return recipe.cuisines.some(
-              cuisine =>
-                cuisine
-                  .toLowerCase()
-                  .includes(
-                    country.toLowerCase()
-                  )
-            )
-          }
+              return name1 === name2
+            })
+        )
 
-          return false
-        })
+      setRecipes(allRecipes)
+
+    } catch (error) {
+
+      console.error(error)
+
+    } finally {
+
+      setLoading(false)
     }
-
-    setRecipes(allRecipes)
   }
 
   return (
+
     <div className="overflow-x-hidden">
 
       <Navbar />
@@ -103,20 +232,37 @@ function Home() {
 
       <Categories />
 
-      
+      <SearchBar
+        onSearch={handleSearch}
+      />
 
-      <SearchBar onSearch={handleSearch} />
-      
+      {
+        loading ? (
 
-      <RecipeResults recipes={recipes} />
-      {otherOptions.length > 0 && (
+          <div className="py-20 flex justify-center">
 
-        <RecipeResults
-          title="Otras opciones"
-          recipes={otherOptions}
-        />
+            <div className=" w-14 h-14 border-4 border-red-300 border-t-transparent rounded-full animate-spin" />
 
-      )}
+          </div>
+
+        ) : (
+
+          <RecipeResults
+            recipes={recipes}
+          />
+        )
+      }
+
+      {
+        otherOptions.length > 0 && (
+
+          <RecipeResults
+            title="Otras opciones"
+            recipes={otherOptions}
+          />
+        )
+      }
+     
 
       <DailySuggestions />
 

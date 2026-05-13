@@ -301,7 +301,7 @@ function RecipeDetails() {
 
       <div className="max-w-6xl mx-auto px-6">
 
-        <div className="grid md:grid-cols-2 gap-14">
+        <div className="grid lg:grid-cols-[1fr_1.1fr] gap-12 items-start">
 
           {/* IMAGEN */}
           <div>
@@ -317,7 +317,13 @@ function RecipeDetails() {
                 recipe.strMeal ||
                 recipe.title
               }
-              className="w-full rounded-[30px] shadow-xl"
+              className="
+                w-full
+                h-[420px]
+                object-cover
+                rounded-[30px]
+                shadow-xl
+              "
             />
             
 
@@ -329,83 +335,100 @@ function RecipeDetails() {
             <p className="uppercase tracking-[3px] text-red-400 mb-4">
               {recipe.translatedCategory}
             </p>
-            
 
-            <h1 className="text-5xl font-light mb-8">
-             {recipe.translatedTitle}
-             
-            </h1>
-            
-            
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-8">
 
-            <div className="flex gap-6 mb-10 text-gray-500">
+              <div>
 
-              <span>
-                🌍 {recipe.translatedArea}
-              </span>
+                <h1
+                  className="
+                    text-4xl
+                    md:text-5xl
+                    font-semibold
+                    leading-tight
+                    text-gray-900
+                  "
+                >
+                  {recipe.translatedTitle}
+                </h1>
 
-              <span>
-                🍽️ {recipe.translatedCategory}
-              </span>
+                <div className="flex gap-6 mt-5 text-gray-500 flex-wrap items-center">
+
+                  <span>
+                    🌍 {recipe.translatedArea}
+                  </span>
+
+                  <span>
+                    🍽️ {recipe.translatedCategory}
+                  </span>
+                  {/* BOTÓN */}
+                  <button
+                    onClick={handleFavorite}
+                    className={`
+                      flex items-center gap-3
+                      px-5 py-3
+                      rounded-full
+                      transition-all duration-300
+                      shadow-sm
+                      hover:scale-105
+                      whitespace-nowrap
+
+                      ${
+                        isFavorite
+                          ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
+                          : 'bg-white text-gray-700 border border-gray-200 hover:border-red-300'
+                      }
+                    `}
+                  >
+
+                    <span className="text-xl">
+
+                      {
+                        isFavorite
+                          ? '❤️'
+                          : '🤍'
+                      }
+
+                    </span>
+
+                    <span className="font-medium">
+
+                      {
+                        isFavorite
+                          ? 'Guardada en favoritos'
+                          : 'Guardar receta'
+                      }
+
+                    </span>
+
+                  </button>
+
+                  
+
+                </div>
+
+              </div>
+
+              
 
             </div>
-            <button
-  onClick={handleFavorite}
-  className={`
-    flex items-center gap-3
-    px-7 py-4 mt-6
-    rounded-full
-    transition-all duration-300
-    shadow-sm
-    hover:scale-105
-
-    ${
-      isFavorite
-
-        ? 'bg-red-400 text-white'
-
-        : 'bg-white text-gray-700 border border-gray-200 hover:border-red-300'
-    }
-  `}
->
-
-  <span className="text-xl">
-
-    {
-      isFavorite
-        ? '❤️'
-        : '🤍'
-    }
-
-  </span>
-
-  <span className="font-medium">
-
-    {
-      isFavorite
-        ? 'Guardada en favoritos'
-        : 'Guardar receta'
-    }
-
-  </span>
-
-</button>
             
-            {recipe.readyInMinutes && (
+                        
+                  {recipe.readyInMinutes && (
 
-  <span>
-    ⏱️ {recipe.readyInMinutes} min
-  </span>
+              <span>
+                ⏱️ {recipe.readyInMinutes} min
+              </span>
 
-)}
+            )}
 
-{recipe.servings && (
+            {recipe.servings && (
 
-  <span>
-    🍽️ {recipe.servings} porciones
-  </span>
+              <span>
+                🍽️ {recipe.servings} porciones
+              </span>
 
-)}
+            )}
 
             {/* INGREDIENTES */}
             <div className="mb-12">
@@ -414,20 +437,27 @@ function RecipeDetails() {
                 Ingredientes
               </h2>
 
-              <ul className="space-y-3">
+              <div className="flex flex-wrap gap-3 justify-between">
 
                 {ingredients.map((item, index) => (
 
-                  <li
+                  <div
                     key={index}
-                    className="bg-white p-4 rounded-xl shadow-sm"
+                    className="
+                      bg-white
+                      px-4 py-2
+                      rounded-full
+                      shadow-sm
+                      text-gray-700
+                      border border-gray-100
+                    "
                   >
                     {item}
-                  </li>
+                  </div>
 
                 ))}
 
-              </ul>
+              </div>
 
             </div>
 
@@ -493,7 +523,7 @@ function RecipeDetails() {
           </h2>
 
           <div
-            className="bg-white p-8 rounded-[30px] shadow-lg leading-relaxed text-gray-700 text-justify"
+            className="bg-white/80 backdrop-blur-sm p-10 rounded-[35px] shadow-xl leading-8 rounded-[30px] shadow-lg leading-relaxed text-gray-700 text-justify"
             dangerouslySetInnerHTML={{
               __html:
                 isTranslating
