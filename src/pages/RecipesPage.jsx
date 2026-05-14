@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 
-import RecipeResults from '../components/RecipeResults'
+import { useSearchParams }
+from 'react-router-dom'
+
+import RecipeResults
+from '../components/RecipeResults'
 
 import {
   getMealsByCategory,
   getRandomMeals
-} from '../api/mealdb'
+}
+from '../api/mealdb'
 
-import { getRecipes } from '../api/spoonacular'
+import { supabase }
+from '../assets/services/supabase'
 
-import { translateText } from '../services/translate'
+import { translateText }
+from '../services/translate'
 
 function RecipesPage() {
 
@@ -20,161 +26,305 @@ function RecipesPage() {
   const [loading, setLoading] =
     useState(true)
 
+  const [translatedTitles,
+    setTranslatedTitles] =
+      useState({})
+
   const [searchParams] =
     useSearchParams()
 
   const category =
     searchParams.get('category')
-const [translatedCategory, setTranslatedCategory] = useState('')
+
+  const [translatedCategory,
+    setTranslatedCategory] =
+      useState('')
+
   useEffect(() => {
 
     async function fetchRecipes() {
 
       setLoading(true)
 
-      // =========================
-      // RECETAS POR CATEGORÍA
-      // =========================
-      if (category) {
+      try {
 
-        const translatedCategoryName =
-          await translateText(category)
+        /* =========================
+           CATEGORÍAS
+           SOLO MEALDB
+        ========================= */
 
-        setTranslatedCategory(
-          translatedCategoryName
-        )
+        if (category) {
 
-        const meals =
-          await getMealsByCategory(category)
+          const translatedCategoryName =
+            await translateText(
+              category,
+              'en',
+              'es'
+            )
 
-        const translatedMeals =
-          await Promise.all(
+          setTranslatedCategory(
+            translatedCategoryName
+          )
 
-            meals.map(async meal => ({
+          const meals =
+            await getMealsByCategory(
+              category
+            )
+
+          const translatedMeals =
+            await Promise.all(
+
+              (meals || []).map(
+                async meal => {
+
+                  try {
+
+                    return {
+
+                      ...meal,
+
+                      source:
+                        'mealdb',
+
+                      id:
+                        meal.idMeal,
+
+                      strMeal:
+                        await translateText(
+                          meal.strMeal,
+                          'en',
+                          'es'
+                        ),
+
+                      strCategory:
+                        translatedCategoryName,
+
+                      strArea:
+                        'Internacional'
+                    }
+
+                  } catch {
+
+                    return {
+
+                      ...meal,
+
+                      source:
+                        'mealdb',
+
+                      id:
+                        meal.idMeal,
+
+                      strCategory:
+                        translatedCategoryName,
+
+                      strArea:
+                        'Internacional'
+                    }
+                  }
+                })
+            )
+
+          setRecipes(
+            translatedMeals
+          )
+
+          setLoading(false)
+
+          return
+        }
+
+        /* =========================
+           CATÁLOGO MIXTO
+        ========================= */
+
+        const [
+
+          mealdbRecipes,
+
+          {
+            data: localRecipes,
+            error: localError
+          }
+
+        ] = await Promise.all([
+
+          getRandomMeals(25),
+
+          supabase
+            .from('recipes')
+            .select('*')
+            .limit(15)
+        ])
+
+        if (localError) {
+
+          console.error(
+            localError
+          )
+        }
+
+        /* =========================
+           FORMATEAR MEALDB
+        ========================= */
+
+        const formattedMealdb =
+          (mealdbRecipes || []).map(
+            meal => ({
 
               ...meal,
 
-              source: 'mealdb',
+              id:
+                meal.idMeal,
 
-              strMeal:
-                await translateText(
-                  meal.strMeal
-                ),
+              title:
+                meal.strMeal,
 
-              strCategory:
-                translatedCategoryName,
-
-              strArea:
-                'Internacional'
-            }))
+              source:
+                'mealdb'
+            })
           )
 
-        setRecipes(translatedMeals)
+        /* =========================
+           FORMATEAR LOCALES
+        ========================= */
 
-        setLoading(false)
+        const formattedLocal =
+          (localRecipes || []).map(
+            recipe => ({
 
-        return
-      }
+              ...recipe,
 
-      // =========================
-      // FLUJO NORMAL
-      // =========================
+              id:
+                recipe.spoonacular_id,
 
-      const mealdbRecipes =
-        await getRandomMeals(25)
+              source:
+                'recetario'
+            })
+          )
 
-      const spoonacularRecipes =
-        await getRecipes('', 15)
+        /* =========================
+           UNIR
+        ========================= */
 
-      const formattedMealdb =
-        mealdbRecipes.map(meal => ({
-          ...meal,
-          source: 'mealdb'
-        }))
+        let allRecipes = [
 
-      const formattedSpoonacular =
-        spoonacularRecipes.map(recipe => ({
-          ...recipe,
-          source: 'spoonacular'
-        }))
+          ...formattedLocal,
 
-      const allRecipes = [
-        ...formattedSpoonacular,
-        ...formattedMealdb
-        
-      ]
+          ...formattedMealdb
+        ]
 
-      const translatedRecipes =
-        await Promise.all(
+        /* =========================
+           ELIMINAR DUPLICADOS
+        ========================= */
 
-          allRecipes.map(async recipe => {
+        allRecipes =
+          allRecipes.filter(
+            (recipe, index, self) =>
 
-            try {
+              index ===
+              self.findIndex(r => {
 
-              return {
+                const title1 =
+                  (
+                    r.title ||
+                    r.strMeal ||
+                    ''
+                  )
+                    .toLowerCase()
 
-                ...recipe,
+                const title2 =
+                  (
+                    recipe.title ||
+                    recipe.strMeal ||
+                    ''
+                  )
+                    .toLowerCase()
 
-                strMeal:
-                  recipe.strMeal
-                    ? await translateText(
-                        recipe.strMeal
-                      )
-                    : recipe.strMeal,
+                return (
+                  title1 === title2
+                )
+              })
+          )
 
-                title:
-                  recipe.title
-                    ? await translateText(
-                        recipe.title
-                      )
-                    : recipe.title,
+        /* =========================
+           RENDER INMEDIATO
+        ========================= */
 
-                strCategory:
-                  recipe.strCategory
-                    ? await translateText(
-                        recipe.strCategory
-                      )
-                    : recipe.strCategory,
-
-                category:
-                  recipe.category
-                    ? await translateText(
-                        recipe.category
-                      )
-                    : recipe.category,
-
-                strArea:
-                  recipe.strArea
-                    ? await translateText(
-                        recipe.strArea
-                      )
-                    : recipe.strArea,
-
-                area:
-                  recipe.area
-                    ? await translateText(
-                        recipe.area
-                      )
-                    : recipe.area
-              }
-
-            } catch (error) {
-
-              console.error(error)
-
-              return recipe
-            }
-          })
+        setRecipes(
+          allRecipes
         )
 
-      setRecipes(translatedRecipes)
+      } catch (error) {
 
-      setLoading(false)
+        console.error(
+          'Error:',
+          error
+        )
+
+      } finally {
+
+        setLoading(false)
+      }
     }
 
     fetchRecipes()
 
   }, [category])
+
+  /* =========================
+     TRADUCCIÓN PROGRESIVA
+  ========================= */
+
+  useEffect(() => {
+
+    async function translateVisibleTitles() {
+
+      if (recipes.length === 0)
+        return
+
+      for (const recipe of recipes) {
+
+        try {
+
+          const originalTitle =
+
+            recipe.title ||
+
+            recipe.strMeal
+
+          const translated =
+            await translateText(
+              originalTitle,
+              'en',
+              'es'
+            )
+
+          setTranslatedTitles(
+            prev => ({
+
+              ...prev,
+
+              [recipe.id]:
+                translated
+            })
+          )
+
+        } catch {}
+      }
+    }
+
+    // SOLO PARA CATÁLOGO MIXTO
+    if (!category) {
+
+      translateVisibleTitles()
+    }
+
+  }, [recipes, category])
+
+  /* =========================
+     LOADING
+  ========================= */
 
   if (loading) {
 
@@ -182,27 +332,40 @@ const [translatedCategory, setTranslatedCategory] = useState('')
 
       <div className="min-h-screen flex flex-col items-center justify-center gap-6">
 
-        <div className="w-16 h-16 border-4 border-red-300 border-t-red-500 rounded-full animate-spin"></div>
+        <div className="w-16 h-16 border-4 border-red-300 border-t-red-500 rounded-full animate-spin" />
 
         <p className="text-2xl text-gray-500">
+
           Preparando recetas deliciosas 🍜
+
         </p>
 
       </div>
     )
   }
 
+  /* =========================
+     RENDER
+  ========================= */
+
   return (
 
     <RecipeResults
+
       recipes={recipes}
+
+      translatedTitles={
+        translatedTitles
+      }
+
       title={
         category
+
           ? `Categoría: ${translatedCategory}`
+
           : 'Todas las recetas'
       }
     />
-
   )
 }
 

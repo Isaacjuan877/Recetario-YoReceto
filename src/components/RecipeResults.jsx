@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 function RecipeResults({
   recipes,
+  translatedTitles = {},
   title = 'Resultados',
   isFavoritesPage = false,
   onRemove
@@ -76,8 +77,16 @@ function RecipeResults({
                           meal.image
                         }
                         alt={
+                          translatedTitles[
+                            meal.id ||
+                            meal.idMeal ||
+                            meal.spoonacular_id
+                          ] ||
+
                           meal.translatedTitle ||
+
                           meal.strMeal ||
+
                           meal.title
                         }
                         className="w-full h-72 object-cover"
@@ -128,15 +137,23 @@ function RecipeResults({
                       <h3 className="text-2xl mb-6 leading-snug">
 
                         {
+                          translatedTitles[
+                            meal.id ||
+                            meal.idMeal ||
+                            meal.spoonacular_id
+                          ] ||
+
                           meal.translatedTitle ||
+
                           meal.strMeal ||
+
                           meal.title
                         }
 
                       </h3>
 
-                      <Link
-                        to={`/recipe/${meal.source}/${meal.idMeal || meal.id || meal.recipe_id}`}
+                     <Link
+                        to={`/recipe/${meal.source}/${meal.spoonacular_id || meal.idMeal || meal.id || meal.recipe_id}`}
                         className="bg-red-400 hover:bg-red-500 text-white px-6 py-3 rounded-full inline-block transition-all"
                       >
                         Ver receta

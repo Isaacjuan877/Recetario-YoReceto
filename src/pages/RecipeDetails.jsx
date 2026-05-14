@@ -1,20 +1,32 @@
 import { useEffect, useState } from 'react'
 import { translateText } from '../services/translate'
-import { useParams} from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { getMealById } from '../api/mealdb'
-
-import {  getRecipeById} from '../api/spoonacular'
-import {  getYoutubeEmbed} from '../services/youtube'
 import { supabase } from '../assets/services/supabase'
 import LoginModal from '../components/LoginModal'
+
 function RecipeDetails() {
 
   const { source, id } = useParams()
-  const [recipe, setRecipe] = useState(null)
-  const [translatedInstructions, setTranslatedInstructions] = useState('')
-  const [isTranslating, setIsTranslating] = useState(false)
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [showLogin, setShowLogin] = useState(false)
+
+  const [recipe, setRecipe] =
+    useState(null)
+
+  const [translatedInstructions, setTranslatedInstructions] =
+    useState('')
+
+  const [isTranslating, setIsTranslating] =
+    useState(false)
+
+  const [isFavorite, setIsFavorite] =
+    useState(false)
+
+  const [showLogin, setShowLogin] =
+    useState(false)
+
+  const [showAllNutrition, setShowAllNutrition] =
+    useState(false)
+
   useEffect(() => {
 
     async function fetchRecipe() {
@@ -23,217 +35,302 @@ function RecipeDetails() {
 
       let data = null
 
-      // SPOONACULAR
-      if (source === 'spoonacular') {
+      try {
 
-        data = await getRecipeById(id)
+        /* =========================
+           RECETARIO LOCAL
+        ========================= */
 
-      } else {
-
-        // MEALDB
-        data = await getMealById(id)
-      }
-
-      if (!data) return
-
-      // TÍTULO
-      const title =
-        data.strMeal || data.title
-
-      data.translatedTitle =
-        await translateText(title)
-
-      // CATEGORÍA
-      const category =
-        data.strCategory ||
-        data.dishTypes?.[0] ||
-        'Receta'
-
-      data.translatedCategory =
-        await translateText(category)
-
-      // PAÍS
-      const area =
-        data.strArea ||
-        data.cuisines?.[0] ||
-        'Internacional'
-
-      data.translatedArea =
-        await translateText(area)
-
-      // INSTRUCCIONES
-      const instructions =
-        data.strInstructions ||
-        data.instructions ||
-        ''
-
-      const translated =
-        await translateText(instructions)
-
-      setTranslatedInstructions(translated)
-
-      // INGREDIENTES THEMEALDB
-      if (data.strIngredient1) {
-
-        for (let i = 1; i <= 20; i++) {
-
-          const ingredient =
-            data[`strIngredient${i}`]
-
-          if (
-            ingredient &&
-            ingredient.trim() !== ''
-          ) {
-
-            data[`strIngredient${i}`] =
-              await translateText(ingredient)
-          }
-        }
-      }
-
-      // INGREDIENTES SPOONACULAR
-      if (data.extendedIngredients) {
-
-        for (const item of data.extendedIngredients) {
-
-          item.name =
-            await translateText(item.name)
-        }
-      }
-      const {
-        data: { session }
-      } = await supabase.auth.getSession()
-
-      if (session) {
-
-        const { data: favorite } =
-          await supabase
-            .from('favorites')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .eq('recipe_id', id)
-            .single()
-
-        setIsFavorite(!!favorite)
-      }
-      async function autoSaveFavorite() {
-
-        const pending =
-          localStorage.getItem(
-            'pendingFavorite'
-          )
-
-        if (!pending) return
-
-        const parsed =
-          JSON.parse(pending)
-
-        if (
-
-          parsed.id === id &&
-          parsed.source === source
-
-        ) {
+        if (source === 'recetario') {
 
           const {
-            data: { session }
-          } = await supabase.auth.getSession()
+            data: localData,
+            error
+          } = await supabase
+            .from('recipes')
+            .select('*')
+            .eq('spoonacular_id', id)
 
-          if (!session) return
+          if (error) throw error
 
-          // GUARDAR FAVORITO
-          await supabase
-            .from('favorites')
-            .insert({
+          if (
+            !localData ||
+            localData.length === 0
+          ) {
 
-              user_id: session.user.id,
+            console.error(
+              'No se encontró la receta'
+            )
 
-              recipe_id: id,
+            return
+          }
 
-              source,
-
-              title:
-                data.translatedTitle,
-
-              image:
-                data.strMealThumb ||
-                data.image,
-
-              category:
-                data.translatedCategory,
-
-              area:
-                data.translatedArea
-            })
-
-          // ACTUALIZAR BOTÓN
-          setIsFavorite(true)
-
-          localStorage.removeItem(
-            'pendingFavorite'
-          )
+          data = localData[0]
         }
-      }
-      setRecipe(data)
 
-      setIsTranslating(false)
+        /* =========================
+           MEALDB
+        ========================= */
+
+        else if (source === 'mealdb') {
+
+          data =
+            await getMealById(id)
+        }
+
+        if (!data) return
+
+        /* =========================
+           TÍTULO
+        ========================= */
+
+        const rawTitle =
+          data.title ||
+          data.strMeal
+
+        data.translatedTitle =
+          await translateText(
+            rawTitle,
+            'en',
+            'es'
+          )
+
+        /* =========================
+           CATEGORÍA
+        ========================= */
+
+        const rawCat =
+          data.category ||
+          data.strCategory ||
+          'Receta'
+
+        data.translatedCategory =
+          await translateText(
+            rawCat,
+            'en',
+            'es'
+          )
+
+        /* =========================
+           ÁREA
+        ========================= */
+
+        const rawArea =
+          data.area ||
+          data.strArea ||
+          'Internacional'
+
+        data.translatedArea =
+          await translateText(
+            rawArea,
+            'en',
+            'es'
+          )
+
+        /* =========================
+           INSTRUCCIONES
+        ========================= */
+
+        const rawInstructions =
+          data.instructions ||
+          data.strInstructions ||
+          ''
+
+        const translatedInst =
+          await translateText(
+            rawInstructions,
+            'en',
+            'es'
+          )
+
+        setTranslatedInstructions(
+          translatedInst
+        )
+
+        /* =========================
+           INGREDIENTES
+        ========================= */
+
+        if (
+          source === 'recetario' &&
+          data.ingredients
+        ) {
+
+          for (const item of data.ingredients) {
+
+            item.name =
+              await translateText(
+                item.name || item.original,
+                'en',
+                'es'
+              )
+          }
+        }
+
+        else if (data.strIngredient1) {
+
+          for (
+            let i = 1;
+            i <= 20;
+            i++
+          ) {
+
+            const ing =
+              data[`strIngredient${i}`]
+
+            if (
+              ing &&
+              ing.trim() !== ''
+            ) {
+
+              data[`strIngredient${i}`] =
+                await translateText(
+                  ing,
+                  'en',
+                  'es'
+                )
+            }
+          }
+        }
+
+        /* =========================
+           FAVORITOS
+        ========================= */
+
+        const {
+          data: { session }
+        } =
+          await supabase.auth.getSession()
+
+        if (session) {
+
+          const { data: favorite } =
+            await supabase
+              .from('favorites')
+              .select('*')
+              .eq(
+                'user_id',
+                session.user.id
+              )
+              .eq(
+                'recipe_id',
+                id
+              )
+              .single()
+
+          setIsFavorite(!!favorite)
+        }
+
+        setRecipe(data)
+
+      } catch (err) {
+
+        console.error(
+          'Error cargando receta:',
+          err
+        )
+
+      } finally {
+
+        setIsTranslating(false)
+      }
     }
 
     fetchRecipe()
-    
 
   }, [id, source])
 
-  if (!recipe) {
+  /* =========================
+     INGREDIENTES
+  ========================= */
 
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Cargando receta...
-      </div>
-    )
-  }
+  let ingredientsToRender = []
 
-  // INGREDIENTES
-  let ingredients = []
+  if (recipe) {
 
-  // THEMEALDB
-  if (recipe.strIngredient1) {
+    if (
+      source === 'recetario' &&
+      recipe.ingredients
+    ) {
 
-    for (let i = 1; i <= 20; i++) {
+      ingredientsToRender =
+        recipe.ingredients.map(item =>
 
-      const ingredient =
-        recipe[`strIngredient${i}`]
+          `${item.amount || ''}
+           ${item.unit || ''}
+           ${item.name || item.original}`
+        )
+    }
 
-      const measure =
-        recipe[`strMeasure${i}`]
+    else if (recipe.strIngredient1) {
 
-      if (
-        ingredient &&
-        ingredient.trim() !== ''
+      for (
+        let i = 1;
+        i <= 20;
+        i++
       ) {
 
-        ingredients.push(
-          `${measure} ${ingredient}`
-        )
+        const ing =
+          recipe[`strIngredient${i}`]
+
+        const measure =
+          recipe[`strMeasure${i}`]
+
+        if (
+          ing &&
+          ing.trim() !== ''
+        ) {
+
+          ingredientsToRender.push(
+            `${measure} ${ing}`
+          )
+        }
       }
     }
   }
 
-  // SPOONACULAR
-  else if (recipe.extendedIngredients) {
+  /* =========================
+     NUTRICIÓN
+  ========================= */
 
-    ingredients =
-      recipe.extendedIngredients.map(
-        item =>
+  const nutrients =
+    recipe?.nutrition?.nutrients || []
 
-          `${item.amount || ''} ${item.unit || ''} ${item.name}`
+  const importantNutrients = [
+
+    'Calories',
+    'Protein',
+    'Fat',
+    'Carbohydrates',
+    'Fiber',
+    'Sugar',
+    'Sodium'
+  ]
+
+  const mainNutrition =
+    nutrients.filter(item =>
+      importantNutrients.includes(
+        item.name
       )
-  }
+    )
+
+  const extraNutrition =
+    nutrients.filter(item =>
+      !importantNutrients.includes(
+        item.name
+      )
+    )
+
+  /* =========================
+     FAVORITOS
+  ========================= */
+
   async function handleFavorite() {
 
     const {
       data: { session }
-    } = await supabase.auth.getSession()
+    } =
+      await supabase.auth.getSession()
 
     if (!session) {
 
@@ -250,284 +347,486 @@ function RecipeDetails() {
       return
     }
 
-    // ELIMINAR SI YA EXISTE
-    if (isFavorite) {
+    try {
 
-      await supabase
-        .from('favorites')
-        .delete()
-        .eq('user_id', session.user.id)
-        .eq('recipe_id', id)
+      if (isFavorite) {
 
-      setIsFavorite(false)
+        await supabase
+          .from('favorites')
+          .delete()
+          .eq(
+            'user_id',
+            session.user.id
+          )
+          .eq(
+            'recipe_id',
+            id
+          )
 
-      return
+        setIsFavorite(false)
+      }
+
+      else {
+
+        const favTitle =
+          recipe.translatedTitle ||
+          recipe.title ||
+          recipe.strMeal
+
+        const favImage =
+          recipe.image ||
+          recipe.strMealThumb
+
+        const { error } =
+          await supabase
+            .from('favorites')
+            .insert({
+
+              user_id:
+                session.user.id,
+
+              recipe_id:
+                id,
+
+              source:
+                source,
+
+              title:
+                favTitle,
+
+              image:
+                favImage,
+
+              category:
+                recipe.translatedCategory ||
+                'Receta',
+
+              area:
+                recipe.translatedArea ||
+                'Internacional'
+            })
+
+        if (error) throw error
+
+        setIsFavorite(true)
+      }
+
+    } catch (error) {
+
+      console.error(
+        'Error favoritos:',
+        error
+      )
     }
-
-    // GUARDAR
-    const recipeTitle =
-      recipe.translatedTitle ||
-      recipe.strMeal ||
-      recipe.title
-
-    const recipeImage =
-      recipe.strMealThumb ||
-      recipe.image
-
-    await supabase
-    .from('favorites')
-    .insert({
-      user_id: session.user.id,
-      recipe_id: id,
-      source: source,
-      title:
-        recipe.strMeal || recipe.title,
-      image:
-        recipe.strMealThumb || recipe.image
-    })
-
-    setIsFavorite(true)
   }
-  
+
+  if (!recipe) {
+
+    return (
+
+      <div className="
+        min-h-screen
+        flex
+        items-center
+        justify-center
+      ">
+
+        Cargando receta...
+
+      </div>
+    )
+  }
 
   return (
-    
-    <section className="bg-[#f7f3ed] min-h-screen py-20">
-      
+
+    <section className="
+      bg-[#f7f3ed]
+      min-h-screen
+      py-20
+    ">
+
       <LoginModal
         isOpen={showLogin}
         setIsOpen={setShowLogin}
       />
 
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="
+        max-w-6xl
+        mx-auto
+        px-6
+      ">
 
-        <div className="grid lg:grid-cols-[1fr_1.1fr] gap-12 items-start">
+        <div className="
+          grid
+          lg:grid-cols-[1fr_1.1fr]
+          gap-12
+          items-start
+        ">
 
           {/* IMAGEN */}
-          <div>
 
-            <img
-              src={
-                recipe.strMealThumb ||
-                recipe.image
-              }
+          <img
+            src={
+              recipe.image ||
+              recipe.strMealThumb
+            }
 
-              alt={
-                recipe.translatedTitle ||
-                recipe.strMeal ||
-                recipe.title
-              }
-              className="
-                w-full
-                h-[420px]
-                object-cover
-                rounded-[30px]
-                shadow-xl
-              "
-            />
-            
+            alt={
+              recipe.translatedTitle
+            }
 
-          </div>
+            className="
+              w-full
+              h-[420px]
+              object-cover
+              rounded-[30px]
+              shadow-xl
+            "
+          />
 
           {/* INFO */}
+
           <div>
 
-            <p className="uppercase tracking-[3px] text-red-400 mb-4">
+            <p className="
+              uppercase
+              tracking-[3px]
+              text-red-400
+              mb-4
+            ">
+
               {recipe.translatedCategory}
+
             </p>
 
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-8">
+            <h1 className="
+              text-4xl
+              md:text-5xl
+              font-semibold
+              text-gray-900
+            ">
 
-              <div>
+              {recipe.translatedTitle}
 
-                <h1
-                  className="
-                    text-4xl
-                    md:text-5xl
-                    font-semibold
-                    leading-tight
-                    text-gray-900
-                  "
-                >
-                  {recipe.translatedTitle}
-                </h1>
+            </h1>
 
-                <div className="flex gap-6 mt-5 text-gray-500 flex-wrap items-center">
+            <div className="
+              flex
+              gap-6
+              mt-5
+              text-gray-500
+              flex-wrap
+              items-center
+            ">
 
-                  <span>
-                    🌍 {recipe.translatedArea}
-                  </span>
+              <span>
+                🌍 {recipe.translatedArea}
+              </span>
 
-                  <span>
-                    🍽️ {recipe.translatedCategory}
-                  </span>
-                  {/* BOTÓN */}
-                  <button
-                    onClick={handleFavorite}
-                    className={`
-                      flex items-center gap-3
-                      px-5 py-3
-                      rounded-full
-                      transition-all duration-300
-                      shadow-sm
-                      hover:scale-105
-                      whitespace-nowrap
+              <span>
+                🍽️ {recipe.translatedCategory}
+              </span>
 
-                      ${
-                        isFavorite
-                          ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
-                          : 'bg-white text-gray-700 border border-gray-200 hover:border-red-300'
-                      }
-                    `}
-                  >
+              <button
+                onClick={handleFavorite}
+                className={`
+                  flex items-center gap-3
+                  px-5 py-3 rounded-full
+                  transition-all duration-300
+                  shadow-sm hover:scale-105
+                  whitespace-nowrap
 
-                    <span className="text-xl">
+                  ${
+                    isFavorite
+                      ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:border-red-300'
+                  }
+                `}
+              >
 
-                      {
-                        isFavorite
-                          ? '❤️'
-                          : '🤍'
-                      }
+                <span className="text-xl">
 
-                    </span>
+                  {
+                    isFavorite
+                      ? '❤️'
+                      : '🤍'
+                  }
 
-                    <span className="font-medium">
+                </span>
 
-                      {
-                        isFavorite
-                          ? 'Guardada en favoritos'
-                          : 'Guardar receta'
-                      }
+                <span className="font-medium">
 
-                    </span>
+                  {
+                    isFavorite
+                      ? 'Guardada'
+                      : 'Guardar receta'
+                  }
 
-                  </button>
+                </span>
 
-                  
-
-                </div>
-
-              </div>
-
-              
-
+              </button>
             </div>
-            
-                        
-                  {recipe.readyInMinutes && (
-
-              <span>
-                ⏱️ {recipe.readyInMinutes} min
-              </span>
-
-            )}
-
-            {recipe.servings && (
-
-              <span>
-                🍽️ {recipe.servings} porciones
-              </span>
-
-            )}
 
             {/* INGREDIENTES */}
-            <div className="mb-12">
 
-              <h2 className="text-3xl mb-6">
+            <div className="mt-12">
+
+              <h2 className="
+                text-3xl
+                mb-6
+              ">
+
                 Ingredientes
+
               </h2>
 
-              <div className="flex flex-wrap gap-3 justify-between">
-
-                {ingredients.map((item, index) => (
-
-                  <div
-                    key={index}
-                    className="
-                      bg-white
-                      px-4 py-2
-                      rounded-full
-                      shadow-sm
-                      text-gray-700
-                      border border-gray-100
-                    "
-                  >
-                    {item}
-                  </div>
-
-                ))}
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-        {
-          recipe.nutrition?.nutrients && (
-
-            <div className="mt-16">
-
-              <h2 className="text-4xl mb-8">
-                Información nutricional
-              </h2>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+              <div className="
+                flex
+                flex-wrap
+                gap-3
+              ">
 
                 {
-                  recipe.nutrition.nutrients
-                    .filter(item =>
-
-                      [
-                        'Calories',
-                        'Protein',
-                        'Fat',
-                        'Carbohydrates',
-                        'Sugar',
-                        'Fiber'
-                      ].includes(item.name)
-
-                    )
-                    .map((item, index) => (
+                  ingredientsToRender.map(
+                    (item, index) => (
 
                       <div
                         key={index}
-                        className="bg-white p-6 rounded-2xl shadow-sm"
+                        className="
+                          bg-white
+                          px-4
+                          py-2
+                          rounded-full
+                          shadow-sm
+                          border
+                          border-gray-100
+                        "
                       >
 
-                        <p className="text-gray-400 text-sm mb-2">
-                          {item.name}
-                        </p>
-
-                        <p className="text-3xl font-light">
-                          {Math.round(item.amount)}
-                          {item.unit}
-                        </p>
+                        {item}
 
                       </div>
-                    ))
+                    )
+                  )
                 }
 
               </div>
-
             </div>
-          )
-        }
 
-        {/* INSTRUCCIONES */}
+            {/* NUTRICIÓN */}
+
+            {
+              source === 'recetario' &&
+              nutrients.length > 0 && (
+
+                <div className="mt-14">
+
+                  <div className="
+                    flex
+                    items-center
+                    justify-between
+                    mb-6
+                  ">
+
+                    <h2 className="
+                      text-3xl
+                    ">
+
+                      Información nutricional
+
+                    </h2>
+
+                    <button
+                      onClick={() =>
+                        setShowAllNutrition(
+                          !showAllNutrition
+                        )
+                      }
+                      className="
+                        text-red-400
+                        hover:text-red-500
+                        transition-all
+                      "
+                    >
+
+                      {
+                        showAllNutrition
+                          ? 'Ver menos'
+                          : 'Ver todo'
+                      }
+
+                    </button>
+                  </div>
+
+                  {/* PRINCIPALES */}
+
+                  <div className="
+                    grid
+                    grid-cols-2
+                    md:grid-cols-4
+                    gap-4
+                  ">
+
+                    {
+                      mainNutrition.map(
+                        nutrient => (
+
+                          <div
+                            key={nutrient.name}
+                            className="
+                              bg-white
+                              rounded-3xl
+                              p-5
+                              shadow-md
+                            "
+                          >
+
+                            <p className="
+                              text-sm
+                              text-gray-400
+                              mb-2
+                            ">
+
+                              {nutrient.name}
+
+                            </p>
+
+                            <p className="
+                              text-2xl
+                              font-semibold
+                              text-gray-900
+                            ">
+
+                              {
+                                Math.round(
+                                  nutrient.amount
+                                )
+                              }
+
+                              <span className="
+                                text-sm
+                                text-gray-400
+                                ml-1
+                              ">
+
+                                {nutrient.unit}
+
+                              </span>
+
+                            </p>
+
+                          </div>
+                        )
+                      )
+                    }
+
+                  </div>
+
+                  {/* EXTRA */}
+
+                  {
+                    showAllNutrition && (
+
+                      <div className="
+                        mt-8
+                        bg-white
+                        rounded-[30px]
+                        p-8
+                        shadow-xl
+                      ">
+
+                        <div className="
+                          grid
+                          md:grid-cols-2
+                          gap-4
+                        ">
+
+                          {
+                            extraNutrition.map(
+                              nutrient => (
+
+                                <div
+                                  key={nutrient.name}
+                                  className="
+                                    flex
+                                    items-center
+                                    justify-between
+                                    border-b
+                                    border-gray-100
+                                    py-3
+                                  "
+                                >
+
+                                  <span className="
+                                    text-gray-600
+                                  ">
+
+                                    {nutrient.name}
+
+                                  </span>
+
+                                  <span className="
+                                    font-medium
+                                  ">
+
+                                    {
+                                      Math.round(
+                                        nutrient.amount
+                                      )
+                                    }
+
+                                    {' '}
+
+                                    {nutrient.unit}
+
+                                  </span>
+
+                                </div>
+                              )
+                            )
+                          }
+
+                        </div>
+
+                      </div>
+                    )
+                  }
+
+                </div>
+              )
+            }
+
+          </div>
+        </div>
+
+        {/* PREPARACIÓN */}
+
         <div className="mt-20">
 
-          <h2 className="text-4xl mb-8">
+          <h2 className="
+            text-4xl
+            mb-8
+          ">
+
             Preparación
+
           </h2>
 
           <div
-            className="bg-white/80 backdrop-blur-sm p-10 rounded-[35px] shadow-xl leading-8 rounded-[30px] shadow-lg leading-relaxed text-gray-700 text-justify"
+            className="
+              bg-white/80
+              p-10
+              rounded-[35px]
+              shadow-xl
+              leading-8
+              text-gray-700
+              text-justify
+            "
+
             dangerouslySetInnerHTML={{
               __html:
                 isTranslating
-                  ? 'Traduciendo receta...'
+                  ? 'Traduciendo...'
                   : translatedInstructions
             }}
           />
@@ -535,17 +834,30 @@ function RecipeDetails() {
         </div>
 
         {/* VIDEO */}
-        {recipe.strYoutube && (
 
-          <div className="mt-20">
+        {
+          recipe.strYoutube && (
 
-            <h2 className="text-4xl mb-8">
-              Video
-            </h2>
+            <div className="mt-20">
 
-            {recipe.strYoutube ? (
+              <h2 className="
+                text-4xl
+                mb-8
+                font-light
+              ">
 
-              <div className="aspect-video rounded-[30px] overflow-hidden shadow-xl">
+                Video Tutorial
+
+              </h2>
+
+              <div className="
+                aspect-video
+                rounded-[30px]
+                overflow-hidden
+                shadow-xl
+                border-8
+                border-white
+              ">
 
                 <iframe
                   width="100%"
@@ -557,34 +869,51 @@ function RecipeDetails() {
                     )
                   }
                   title={
-                    recipe.title ||
-                    recipe.strMeal
+                    recipe.translatedTitle
                   }
+                  frameBorder="0"
+                  allow="
+                    accelerometer;
+                    autoplay;
+                    clipboard-write;
+                    encrypted-media;
+                    gyroscope;
+                    picture-in-picture
+                  "
                   allowFullScreen
                 />
 
               </div>
 
-            ) : (
+            </div>
+          )
+        }
+
+        {
+          !recipe.strYoutube && (
+
+            <div className="
+              mt-10
+              text-center
+            ">
 
               <a
-                href={getYoutubeEmbed(
-                  recipe.title ||
-                  recipe.strMeal
-                )}
+                href={`https://www.youtube.com/results?search_query=como+preparar+${recipe.translatedTitle}`}
                 target="_blank"
                 rel="noreferrer"
-                className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-full inline-block"
+                className="
+                  text-red-400
+                  hover:underline
+                "
               >
-                Ver videos de esta receta
+
+                🔍 Buscar video tutorial en YouTube
+
               </a>
 
-            )}
-
-          </div>
-
-        )}
-        
+            </div>
+          )
+        }
 
       </div>
 
