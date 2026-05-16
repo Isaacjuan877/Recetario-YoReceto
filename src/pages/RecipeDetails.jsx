@@ -15,8 +15,7 @@ function RecipeDetails() {
   const [translatedInstructions, setTranslatedInstructions] =
     useState('')
 
-  const [isTranslating, setIsTranslating] =
-    useState(false)
+  
 
   const [isFavorite, setIsFavorite] =
     useState(false)
@@ -26,12 +25,86 @@ function RecipeDetails() {
 
   const [showAllNutrition, setShowAllNutrition] =
     useState(false)
+  const [errorLoading, setErrorLoading] =
+  useState(false)
+   /* =========================
+     VERIFICAR FAVORITO
+  ========================= */
+
+  async function checkFavorite(userId) {
+
+    const { data, error } =
+      await supabase
+        .from('favorites')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('recipe_id', id)
+        .maybeSingle()
+
+    if (error) {
+
+      console.error(
+        'Error verificando favorito:',
+        error
+      )
+
+      return false
+    }
+
+    return !!data
+  }
+
+  /* =========================
+     ESCUCHAR LOGIN / LOGOUT
+  ========================= */
+
+  useEffect(() => {
+
+    const {
+      data: listener
+    } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+
+        if (
+          event === 'SIGNED_IN' &&
+          session
+        ) {
+
+          const exists =
+            await checkFavorite(
+              session.user.id
+            )
+
+          setIsFavorite(exists)
+        }
+
+        if (event === 'SIGNED_OUT') {
+
+          setIsFavorite(false)
+        }
+      }
+    )
+
+    return () => {
+
+      listener.subscription.unsubscribe()
+    }
+
+  }, [id])
+
+  /* =========================
+     CARGAR RECETA
+  ========================= */
 
   useEffect(() => {
 
     async function fetchRecipe() {
 
-      setIsTranslating(true)
+       setRecipe(null)
+
+     
+
+      setErrorLoading(false)
 
       let data = null
 
@@ -61,8 +134,8 @@ function RecipeDetails() {
             console.error(
               'No se encontró la receta'
             )
-
-            return
+              setErrorLoading(true)
+              return
           }
 
           data = localData[0]
@@ -74,124 +147,146 @@ function RecipeDetails() {
 
         else if (source === 'mealdb') {
 
+          
+          
           data =
             await getMealById(id)
+
         }
+        
 
-        if (!data) return
+        if (!data) {
 
+          setErrorLoading(true)
+          return
+        }
+        setRecipe(data)
         /* =========================
-           TÍTULO
+          TRADUCCIONES ASYNC
         ========================= */
 
         const rawTitle =
           data.title ||
-          data.strMeal
-
-        data.translatedTitle =
-          await translateText(
-            rawTitle,
-            'en',
-            'es'
-          )
-
-        /* =========================
-           CATEGORÍA
-        ========================= */
+          data.strMeal ||
+          ''
 
         const rawCat =
           data.category ||
           data.strCategory ||
           'Receta'
 
-        data.translatedCategory =
-          await translateText(
-            rawCat,
-            'en',
-            'es'
-          )
-
-        /* =========================
-           ÁREA
-        ========================= */
-
         const rawArea =
           data.area ||
           data.strArea ||
           'Internacional'
-
-        data.translatedArea =
-          await translateText(
-            rawArea,
-            'en',
-            'es'
-          )
-
-        /* =========================
-           INSTRUCCIONES
-        ========================= */
 
         const rawInstructions =
           data.instructions ||
           data.strInstructions ||
           ''
 
-        const translatedInst =
-          await translateText(
-            rawInstructions,
-            'en',
-            'es'
-          )
-
+        /* instrucciones inmediatas */
         setTranslatedInstructions(
-          translatedInst
+          rawInstructions
         )
 
-        /* =========================
-           INGREDIENTES
-        ========================= */
+        /* traducciones en paralelo */
+        Promise.all([
 
-        if (
-          source === 'recetario' &&
-          data.ingredients
-        ) {
+          translateText(rawTitle, 'en', 'es'),
 
-          for (const item of data.ingredients) {
+          translateText(rawCat, 'en', 'es'),
 
-            item.name =
-              await translateText(
-                item.name || item.original,
-                'en',
-                'es'
-              )
-          }
-        }
+          translateText(rawArea, 'en', 'es'),
 
-        else if (data.strIngredient1) {
+          translateText(rawInstructions, 'en', 'es')
 
-          for (
-            let i = 1;
-            i <= 20;
-            i++
+        ])
+        .then(async ([title, cat, area, instructions]) => {
+
+          /* =========================
+            TRADUCIR INGREDIENTES
+          ========================= */
+
+          if (
+            source === 'recetario' &&
+            data.ingredients
           ) {
 
-            const ing =
-              data[`strIngredient${i}`]
+            for (const item of data.ingredients) {
 
-            if (
-              ing &&
-              ing.trim() !== ''
-            ) {
+              const rawIngredient =
+                item.name ||
+                item.original ||
+                ''
 
-              data[`strIngredient${i}`] =
+              item.name =
                 await translateText(
-                  ing,
+                  rawIngredient,
                   'en',
                   'es'
                 )
             }
           }
-        }
+
+          else if (source === 'mealdb') {
+
+            for (let i = 1; i <= 20; i++) {
+
+              const ing =
+                data[`strIngredient${i}`]
+
+              if (
+                ing &&
+                ing.trim() !== ''
+              ) {
+
+                data[`strIngredient${i}`] =
+                  await translateText(
+                    ing,
+                    'en',
+                    'es'
+                  )
+              }
+            }
+          }
+
+          /* =========================
+            ACTUALIZAR RECETA
+          ========================= */
+
+          setRecipe(prev => ({
+
+            ...(prev || {}),
+
+            ...data,
+
+            translatedTitle: title,
+
+            translatedCategory: cat,
+
+            translatedArea: area
+          }))
+
+          setTranslatedInstructions(
+            instructions
+          )
+
+        })
+        .catch(error => {
+
+          console.error(
+            'Error traduciendo:',
+            error
+          )
+        })
+        .catch(error => {
+
+          console.error(
+            'Error traduciendo:',
+            error
+          )
+        })
 
         /* =========================
            FAVORITOS
@@ -204,24 +299,15 @@ function RecipeDetails() {
 
         if (session) {
 
-          const { data: favorite } =
-            await supabase
-              .from('favorites')
-              .select('*')
-              .eq(
-                'user_id',
-                session.user.id
-              )
-              .eq(
-                'recipe_id',
-                id
-              )
-              .single()
+          const exists =
+            await checkFavorite(
+              session.user.id
+            )
 
-          setIsFavorite(!!favorite)
+          setIsFavorite(exists)
         }
 
-        setRecipe(data)
+        
 
       } catch (err) {
 
@@ -229,16 +315,19 @@ function RecipeDetails() {
           'Error cargando receta:',
           err
         )
+         setErrorLoading(true)
 
       } finally {
 
-        setIsTranslating(false)
+      
       }
     }
 
     fetchRecipe()
 
   }, [id, source])
+
+  
 
   /* =========================
      INGREDIENTES
@@ -419,6 +508,23 @@ function RecipeDetails() {
       )
     }
   }
+  if (errorLoading) {
+
+  return (
+
+    <div className="
+      min-h-screen
+      flex
+      items-center
+      justify-center
+      text-xl
+    ">
+
+      No se pudo cargar la receta
+
+    </div>
+  )
+}
 
   if (!recipe) {
 
@@ -472,7 +578,9 @@ function RecipeDetails() {
             }
 
             alt={
-              recipe.translatedTitle
+              recipe.translatedTitle ||
+              recipe.title ||
+              recipe.strMeal
             }
 
             className="
@@ -495,7 +603,9 @@ function RecipeDetails() {
               mb-4
             ">
 
-              {recipe.translatedCategory}
+              {recipe.translatedCategory ||
+                recipe.category ||
+                recipe.strCategory}
 
             </p>
 
@@ -506,7 +616,9 @@ function RecipeDetails() {
               text-gray-900
             ">
 
-              {recipe.translatedTitle}
+              {recipe.translatedTitle ||
+                recipe.title ||
+                recipe.strMeal}
 
             </h1>
 
@@ -520,11 +632,15 @@ function RecipeDetails() {
             ">
 
               <span>
-                🌍 {recipe.translatedArea}
+                🌍 {recipe.translatedArea ||
+                    recipe.area ||
+                    recipe.strArea}
               </span>
 
               <span>
-                🍽️ {recipe.translatedCategory}
+                🍽️ {recipe.translatedCategory ||
+                      recipe.category ||
+                      recipe.strCategory}
               </span>
 
               <button
@@ -825,9 +941,10 @@ function RecipeDetails() {
 
             dangerouslySetInnerHTML={{
               __html:
-                isTranslating
-                  ? 'Traduciendo...'
-                  : translatedInstructions
+                translatedInstructions ||
+                recipe.instructions ||
+                recipe.strInstructions ||
+                'Sin instrucciones'
             }}
           />
 

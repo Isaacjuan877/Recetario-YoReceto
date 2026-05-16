@@ -3,7 +3,10 @@ import {
   Route
 } from 'react-router-dom'
 
-import { useEffect } from 'react'
+import {
+  useEffect,
+  useState
+} from 'react'
 
 import { supabase } from './assets/services/supabase'
 
@@ -17,32 +20,68 @@ import ResetPassword from './pages/ResetPassword'
 import SearchPage from './pages/SearchPage'
 import Favorites from './pages/Favorites'
 import ScrollToTop from './components/ScrollToTop'
+
 function App() {
+
+  const [loadingAuth, setLoadingAuth] =
+    useState(true)
 
   useEffect(() => {
 
-  const {
-    data: { subscription }
-  } = supabase.auth.onAuthStateChange(
-    (event, session) => {
+    async function loadSession() {
 
-      console.log(event)
-    
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
 
+      
+
+      setLoadingAuth(false)
     }
-  )
 
-  return () => {
-    subscription.unsubscribe()
+    loadSession()
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+
+        
+
+      }
+    )
+
+    return () => {
+
+      subscription.unsubscribe()
+    }
+
+  }, [])
+
+  if (loadingAuth) {
+
+    return (
+
+      <div className="
+        min-h-screen
+        flex
+        items-center
+        justify-center
+      ">
+
+        Cargando...
+
+      </div>
+    )
   }
-
-}, [])
 
   return (
 
     <>
       <Navbar />
+
       <ScrollToTop />
+
       <main className="pt-24">
 
         <Routes>
@@ -81,8 +120,6 @@ function App() {
             path="/favorites"
             element={<Favorites />}
           />
-
-          
 
         </Routes>
 
