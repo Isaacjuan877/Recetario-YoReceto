@@ -1,7 +1,8 @@
 import {
   Routes,
   Route,
-  useLocation
+  useLocation,
+  Navigate
 } from 'react-router-dom'
 
 import {
@@ -31,14 +32,12 @@ function App() {
 
   const isResetPage =
     location.pathname === '/reset-password'
+  const [isRecovery, setIsRecovery] =
+  useState(
+    localStorage.getItem('recoveryMode') === 'true'
+  )
 
-  const hashParams =
-    new URLSearchParams(
-      location.hash.substring(1)
-    )
-
-  const isRecoveryMode =
-    hashParams.get('type') === 'recovery'
+  
 
   /* =========================
      CARGAR SESIÓN
@@ -48,7 +47,24 @@ function App() {
 
     async function loadSession() {
 
-      await supabase.auth.getSession()
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
+
+      const isRecoverySession =
+        session?.user &&
+        localStorage.getItem(
+          'recoveryMode'
+        ) === 'true'
+
+      if (!isRecoverySession) {
+
+        localStorage.removeItem(
+          'recoveryMode'
+        )
+
+        setIsRecovery(false)
+      }
 
       setLoadingAuth(false)
     }
@@ -59,7 +75,27 @@ function App() {
       data: { subscription }
     } =
       supabase.auth.onAuthStateChange(
-        async () => {}
+        async (event) => {
+
+          if (event === 'PASSWORD_RECOVERY') {
+
+            localStorage.setItem(
+              'recoveryMode',
+              'true'
+            )
+
+            setIsRecovery(true)
+          }
+
+          if (event === 'SIGNED_OUT') {
+
+            localStorage.removeItem(
+              'recoveryMode'
+            )
+
+            setIsRecovery(false)
+          }
+        }
       )
 
     return () => {
@@ -68,35 +104,49 @@ function App() {
     }
 
   }, [])
-
-  /* =========================
-     PROTEGER RECOVERY
-  ========================= */
-
   useEffect(() => {
 
-    async function protectRecovery() {
-
-      const {
-        data: { session }
-      } = await supabase.auth.getSession()
+    function syncRecovery(event) {
 
       if (
-        session &&
-        isRecoveryMode &&
-        !isResetPage
+        event.key === 'recoveryMode' &&
+        event.newValue === null
       ) {
 
-        await supabase.auth.signOut()
+        setIsRecovery(false)
 
-        window.location.href =
-          '/reset-password'
+        window.location.href = '/'
       }
     }
 
-    protectRecovery()
+    window.addEventListener(
+      'storage',
+      syncRecovery
+    )
 
-  }, [isRecoveryMode, isResetPage])
+    return () => {
+
+      window.removeEventListener(
+        'storage',
+        syncRecovery
+      )
+    }
+
+  }, [])
+  
+
+  if (
+  isRecovery &&
+  location.pathname !== '/reset-password'
+) {
+
+  return (
+    <Navigate
+      to="/reset-password"
+      replace
+    />
+  )
+}
 
   if (loadingAuth) {
 
@@ -114,6 +164,7 @@ function App() {
       </div>
     )
   }
+
 
   return (
 

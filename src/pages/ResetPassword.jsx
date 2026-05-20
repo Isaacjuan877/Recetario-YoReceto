@@ -9,17 +9,7 @@ export default function ResetPassword() {
   const [errorMessage, setErrorMessage] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
- useEffect(() => {
-
-    supabase.auth.getSession()
-      .then(({ data }) => {
-
-        
-
-      })
-
-  }, [])
-
+ const navigate = useNavigate()
   const handleReset = async (e) => {
 
     e.preventDefault()
@@ -76,7 +66,11 @@ export default function ResetPassword() {
 
     await supabase.auth.signOut()
 
-    window.location.href = '/'
+    localStorage.removeItem(
+      'recoveryMode'
+    )
+
+    navigate('/')
   }
 
   return (
