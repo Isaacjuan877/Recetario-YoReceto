@@ -1,8 +1,7 @@
 import {
   Routes,
   Route,
-  useLocation,
-  Navigate
+  useLocation
 } from 'react-router-dom'
 
 import {
@@ -24,33 +23,32 @@ import Favorites from './pages/Favorites'
 import ScrollToTop from './components/ScrollToTop'
 
 function App() {
-// CARGAR LA SESION 
+
   const [loadingAuth, setLoadingAuth] =
     useState(true)
+
   const location = useLocation()
 
-  const isResetPage =  location.pathname === '/reset-password'
+  const isResetPage =
+    location.pathname === '/reset-password'
+
   const hashParams =
-  new URLSearchParams(
-    location.hash.substring(1)
-  )
+    new URLSearchParams(
+      location.hash.substring(1)
+    )
 
   const isRecoveryMode =
     hashParams.get('type') === 'recovery'
-  const [isRecovery, setIsRecovery] =  useState(false)
+
+  /* =========================
+     CARGAR SESIÓN
+  ========================= */
 
   useEffect(() => {
 
     async function loadSession() {
 
-      const {
-        data: { session }
-      } = await supabase.auth.getSession()
-
-      if (isRecoveryMode) {
-
-        setIsRecovery(true)
-      }
+      await supabase.auth.getSession()
 
       setLoadingAuth(false)
     }
@@ -61,18 +59,7 @@ function App() {
       data: { subscription }
     } =
       supabase.auth.onAuthStateChange(
-        async (event) => {
-
-          if (event === 'PASSWORD_RECOVERY') {
-
-            setIsRecovery(true)
-          }
-
-          if (event === 'SIGNED_OUT') {
-
-            setIsRecovery(false)
-          }
-        }
+        async () => {}
       )
 
     return () => {
@@ -81,6 +68,35 @@ function App() {
     }
 
   }, [])
+
+  /* =========================
+     PROTEGER RECOVERY
+  ========================= */
+
+  useEffect(() => {
+
+    async function protectRecovery() {
+
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
+
+      if (
+        session &&
+        isRecoveryMode &&
+        !isResetPage
+      ) {
+
+        await supabase.auth.signOut()
+
+        window.location.href =
+          '/reset-password'
+      }
+    }
+
+    protectRecovery()
+
+  }, [isRecoveryMode, isResetPage])
 
   if (loadingAuth) {
 
@@ -98,15 +114,6 @@ function App() {
       </div>
     )
   }
-if (
-  (isRecovery || isRecoveryMode) &&
-  location.pathname !== '/reset-password'
-) {
-
-  return (
-    <Navigate to="/reset-password" replace />
-  )
-}
 
   return (
 
@@ -161,7 +168,6 @@ if (
 
       </main>
     </>
-
   )
 }
 
