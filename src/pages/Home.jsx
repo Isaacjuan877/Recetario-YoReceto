@@ -86,7 +86,7 @@ function Home() {
 
       const formattedLocal = localResults.map(r => ({
         ...r,
-        // IMPORTANTE: Sobrescribimos el id interno (305) con el de la receta (642135)
+        
         id: r.spoonacular_id, 
         source: 'recetario',
         title: r.title,
@@ -103,7 +103,7 @@ function Home() {
       allRecipes = [...formattedLocal, ...formattedApi];
     }
 
-    // 3. Procesamiento final (esto fallaba porque allRecipes no "existía" aquí fuera)
+    // 3. Procesamiento final 
     const uniqueResults = allRecipes.filter(
       (recipe, index, self) =>
         index === self.findIndex((r) => r.title === recipe.title)
