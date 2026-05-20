@@ -257,9 +257,9 @@ const detailedMeals =
     return []
   }
 }
-/* =========================================
-   OBTENER RECETAS ALEATORIAS
-========================================= */
+/* ===============================================
+   OBTENER RECETAS ALEATORIAS SUGERENCIAS DEL DIA
+=============================================== */
 export async function getRandomMeals(count = 3) {
 
   try {

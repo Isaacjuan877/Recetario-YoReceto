@@ -1,6 +1,8 @@
 import {
   Routes,
-  Route
+  Route,
+  useLocation,
+  Navigate
 } from 'react-router-dom'
 
 import {
@@ -22,9 +24,20 @@ import Favorites from './pages/Favorites'
 import ScrollToTop from './components/ScrollToTop'
 
 function App() {
-
+// CARGAR LA SESION 
   const [loadingAuth, setLoadingAuth] =
     useState(true)
+  const location = useLocation()
+
+  const isResetPage =  location.pathname === '/reset-password'
+  const hashParams =
+  new URLSearchParams(
+    location.hash.substring(1)
+  )
+
+  const isRecoveryMode =
+    hashParams.get('type') === 'recovery'
+  const [isRecovery, setIsRecovery] =  useState(false)
 
   useEffect(() => {
 
@@ -34,7 +47,10 @@ function App() {
         data: { session }
       } = await supabase.auth.getSession()
 
-      
+      if (isRecoveryMode) {
+
+        setIsRecovery(true)
+      }
 
       setLoadingAuth(false)
     }
@@ -43,13 +59,21 @@ function App() {
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+    } =
+      supabase.auth.onAuthStateChange(
+        async (event) => {
 
-        
+          if (event === 'PASSWORD_RECOVERY') {
 
-      }
-    )
+            setIsRecovery(true)
+          }
+
+          if (event === 'SIGNED_OUT') {
+
+            setIsRecovery(false)
+          }
+        }
+      )
 
     return () => {
 
@@ -74,11 +98,23 @@ function App() {
       </div>
     )
   }
+if (
+  (isRecovery || isRecoveryMode) &&
+  location.pathname !== '/reset-password'
+) {
+
+  return (
+    <Navigate to="/reset-password" replace />
+  )
+}
 
   return (
 
     <>
-      <Navbar />
+      {
+        !isResetPage &&
+        <Navbar />
+      }
 
       <ScrollToTop />
 

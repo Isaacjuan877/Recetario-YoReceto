@@ -3,7 +3,7 @@ import { supabase } from '../assets/services/supabase'
 import { useNavigate } from 'react-router-dom'
 import { FaEye, FaEyeSlash } from 'react-icons/fa'
 export default function ResetPassword() {
-  const navigate = useNavigate()
+ 
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -14,7 +14,7 @@ export default function ResetPassword() {
     supabase.auth.getSession()
       .then(({ data }) => {
 
-        console.log(data.session)
+        
 
       })
 
@@ -74,7 +74,9 @@ export default function ResetPassword() {
 
     
 
-    navigate('/')
+    await supabase.auth.signOut()
+
+    window.location.href = '/'
   }
 
   return (

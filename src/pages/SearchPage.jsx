@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import RecipeResults from '../components/RecipeResults'
 import { searchMeals } from '../api/mealdb'
 import { translateText } from '../services/translate'
-// IMPORTANTE: Importa la misma función que usas en el Home
+
 import {  searchRecipes} from '../api/recipes'
 
 function SearchPage() {
@@ -19,16 +19,16 @@ function SearchPage() {
       setLoading(true)
 
       try {
-        // 1. TRADUCCIÓN (Igual que handleSearch)
+        // 1. TRADUCCIÓN 
         const translatedQuery = await translateText(query, 'es', 'en');
 
-        // 2. BÚSQUEDA DUAL (Usando searchRecipes para mantener la misma lógica)
+        // 2. BÚSQUEDA DUAL 
         const [dbRecipes, apiMeals] = await Promise.all([
-          searchRecipes(translatedQuery), // <-- Aquí está la clave del éxito
+          searchRecipes(translatedQuery), 
           searchMeals(translatedQuery)
         ]);
 
-        // 3. FORMATEO (Idéntico a handleSearch bloque 'recipe')
+        // 3. FORMATEO 
         const formattedDb = (dbRecipes || []).map(r => ({ 
           ...r, 
           id: r.spoonacular_id, // Aseguramos el ID para la navegación
@@ -46,7 +46,7 @@ function SearchPage() {
 
         const allRecipes = [...formattedDb, ...formattedApi];
 
-        // 4. ELIMINAR DUPLICADOS Y LIMITAR (Igual que handleSearch)
+        // 4. ELIMINAR DUPLICADOS Y LIMITAR 
         const uniqueResults = allRecipes.filter(
           (recipe, index, self) =>
             index === self.findIndex((r) => r.title === recipe.title)
