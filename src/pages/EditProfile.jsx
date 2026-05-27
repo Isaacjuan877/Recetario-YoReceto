@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { supabase } from '../assets/services/supabase'
 const delete_user= import.meta.env.VITE_DELETE_USER
+
 function EditProfile() {
 
     const [user, setUser] = useState(null)
