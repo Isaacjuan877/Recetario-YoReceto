@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { supabase } from '../assets/services/supabase'
-
+const delete_user= import.meta.env.VITE_DELETE_USER
 function EditProfile() {
 
     const [user, setUser] = useState(null)
@@ -26,7 +26,7 @@ function EditProfile() {
       if (!user) return
 
       setUser(user)
-      console.log(user)
+      
 
       setName(
         user.user_metadata?.name || ''
@@ -102,7 +102,7 @@ function EditProfile() {
 
     const res = await fetch(
 
-      'https://adkverseinhlqjinmwyy.supabase.co/functions/v1/delete-user',
+      delete_user,
 
       {
         method: 'POST',
